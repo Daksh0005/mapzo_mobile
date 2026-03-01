@@ -199,10 +199,8 @@ const FeedController = (() => {
     if (imgs.length >= 3) {
       return `
         <div class="pg-main"><img src="${imgs[0]}" loading="lazy"></div>
-        <div class="pg-side">
-          <div class="pg-sm"><img src="${imgs[1]}" loading="lazy"></div>
-          <div class="pg-sm"><img src="${imgs[2]}" loading="lazy"></div>
-        </div>`;
+        <div class="pg-sm"><img src="${imgs[1]}" loading="lazy"></div>
+        <div class="pg-sm"><img src="${imgs[2]}" loading="lazy"></div>`;
     }
     if (imgs.length === 1) {
       return `<div class="pg-main" style="grid-column:span 2"><img src="${imgs[0]}" loading="lazy"></div>`;

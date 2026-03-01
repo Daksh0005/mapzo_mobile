@@ -104,7 +104,7 @@ const HostController = (() => {
         user_id:     AppState.currentUser.uid,
         // Direct approve URL — clicking this in your email runs the approval
         // You'll need a simple endpoint or just do it manually in Supabase
-        approve_url: `${CONFIG.supabase.url}/rest/v1/rpc/approve_host?user_id=${AppState.currentUser.uid}`,
+        approve_url: `${CONFIG.supabase.url}/functions/v1/approve-host?user_id=${AppState.currentUser.uid}&secret=mapzo_approve_daksh_2026`,
       });
     }
 

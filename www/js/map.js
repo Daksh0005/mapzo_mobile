@@ -293,8 +293,7 @@ const MapController = (() => {
 // Set as callback in the <script> src URL: &callback=onGoogleMapsReady
 window.onGoogleMapsReady = function () {
   console.log('[Maps] API Ready');
-  // If map pane is currently visible, init now
-  if (AppState.currentView === 'map') {
+  if (typeof AppState !== 'undefined' && AppState.currentView === 'map') {
     MapController.init();
   }
 };
