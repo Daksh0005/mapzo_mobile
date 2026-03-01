@@ -217,6 +217,7 @@ const SupabaseService = (() => {
     if (filters.limit)     query = query.limit(filters.limit);
     else                   query = query.limit(CONFIG.app.feedPageSize);
     if (filters.offset)    query = query.range(filters.offset, filters.offset + (filters.limit || CONFIG.app.feedPageSize) - 1);
+    if (filters.host_id) query = query.eq('host_id', filters.host_id);
 
     const { data, error } = await query;
     if (error) { console.error('[Supabase] getEvents:', error.message); return []; }
