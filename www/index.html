@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060608">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Mapzo — Your City is Alive</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/favicon.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/views.css">
+
+  <!-- Firebase (compat — loads all at once, fine for web + Capacitor) -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+  <!-- Supabase -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- EmailJS (for host verification emails to you) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <!-- Google Maps — callback fires when API is ready
+       IMPORTANT: Replace YOUR_GOOGLE_MAPS_API_KEY or better, load dynamically from config.js
+       Libraries: places (autocomplete), visualization (heatmap) -->
+  <!-- Maps script is injected dynamically by map.js after config.js loads -->
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── TOP BAR ── -->
+  <div id="topbar">
+    <div class="tb-brand">mapzo</div>
+    <div class="tb-right">
+      <button class="tb-icon-btn" onclick="AuthUI.openModal('login')">
+        <span class="auth-user-av"></span>
+        <span class="auth-login-btn">👤</span>
+      </button>
+      <button class="tb-icon-btn" onclick="Router.navigate('profile')" style="position:relative;">
+        🔔
+        <span id="notif-badge"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── VIEW SWITCHER (Discover tab only) ── -->
+  <div id="view-switcher">
+    <button class="view-btn active" data-view="map"  onclick="Router.navigate('map')">🗺 Map</button>
+    <button class="view-btn"        data-view="feed" onclick="Router.navigate('feed')">▤ Feed</button>
+    <button class="view-btn"        data-view="list" onclick="Router.navigate('list')">≡ List</button>
+  </div>
+
+  <!-- ── CONTENT ── -->
+  <div id="content">
+
+    <!-- MAP PANE -->
+    <div id="pane-map" class="view-pane hidden">
+      <!-- Google Maps mounts here -->
+      <div id="mapCanvas" style="width:100%;height:100%;"></div>
+
+      <!-- Custom zoom + map controls -->
+      <div class="map-controls">
+        <button class="map-ctrl-btn" id="map-zoom-in"  title="Zoom in">＋</button>
+        <button class="map-ctrl-btn" id="map-zoom-out" title="Zoom out">－</button>
+        <button class="map-ctrl-btn" id="map-recenter" title="My location">📍</button>
+        <button class="map-ctrl-btn" id="map-friends"  title="Friends on map">👥</button>
+      </div>
+
+      <!-- Category filter chips -->
+      <div class="map-filters">
+        <button class="mf-chip active" data-filter="all">All Events</button>
+        <button class="mf-chip" data-filter="music">🎵 Music</button>
+        <button class="mf-chip" data-filter="party">🎉 Parties</button>
+        <button class="mf-chip" data-filter="tech">💻 Tech</button>
+        <button class="mf-chip" data-filter="food">🍕 Food</button>
+        <button class="mf-chip" data-filter="sports">⚽ Sports</button>
+        <button class="mf-chip" data-filter="cultural">🎭 Cultural</button>
+        <button class="mf-chip" data-filter="nightlife">🌙 Nightlife</button>
+      </div>
+
+      <!-- Mini preview card (pops up on pin tap) -->
+      <div id="map-preview">
+        <div id="mp-emoji" style="width:56px;height:56px;border-radius:12px;background:var(--s3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem;"></div>
+        <div class="mp-info">
+          <div id="mp-cat" style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--g);margin-bottom:3px;"></div>
+          <div id="mp-title" style="font-family:var(--font-d);font-size:.95rem;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          <div id="mp-meta" style="font-size:.72rem;color:var(--t2);"></div>
+        </div>
+        <button class="mp-open" onclick="MapController.openCurrentPreviewEvent()">Open →</button>
+        <button class="mp-close" onclick="MapController.closePreview()">✕</button>
+      </div>
+    </div>
+
+    <!-- FEED PANE (vertical snap scroll, cards injected by feed.js) -->
+    <div id="pane-feed" class="view-pane hidden"></div>
+
+    <!-- LIST PANE -->
+    <div id="pane-list" class="view-pane hidden">
+      <div class="list-filter-bar">
+        <button class="lf-chip active">All</button>
+        <button class="lf-chip">Tonight</button>
+        <button class="lf-chip">This Week</button>
+        <button class="lf-chip">Free</button>
+        <button class="lf-chip">Nearby</button>
+        <button class="lf-chip">🔥 Trending</button>
+      </div>
+      <div id="list-cards"></div>
+    </div>
+
+    <!-- EXPLORE PANE -->
+    <div id="pane-explore" class="view-pane hidden">
+      <div class="ex-section">
+        <div class="ex-section-title">🔥 Trending Near You</div>
+        <div class="ex-trending-strip" id="ex-trending-strip"></div>
+      </div>
+      <div class="ex-section">
+        <div class="ex-section-title">Browse by Category</div>
+        <div class="ex-cat-grid" id="ex-cat-grid"></div>
+      </div>
+    </div>
+
+    <!-- SOCIAL PANE -->
+    <div id="pane-social" class="view-pane hidden">
+      <div class="sv-title">Who's Out Now 🟢</div>
+      <div class="sv-live-strip" id="sv-live-strip"></div>
+      <div style="padding:0 14px">
+        <div class="sv-title" style="margin-top:0;">Friends' Activity</div>
+        <div id="sv-activity-feed"></div>
+      </div>
+    </div>
+
+    <!-- PROFILE PANE -->
+    <div id="pane-profile" class="view-pane hidden"></div>
+
+  </div><!-- /content -->
+
+  <!-- ── BOTTOM TAB BAR ── -->
+  <div id="tabbar">
+    <div class="tab-item active" data-tab="discover" id="tab-discover">
+      <div class="tab-icon">🗺</div>
+      <div class="tab-label">Discover</div>
+    </div>
+    <div class="tab-item" data-tab="explore" id="tab-explore">
+      <div class="tab-icon">✦</div>
+      <div class="tab-label">Explore</div>
+    </div>
+    <div class="tab-item" data-tab="host" id="tab-host">
+      <div class="tab-fab">＋</div>
+    </div>
+    <div class="tab-item" data-tab="social" id="tab-social">
+      <div class="tab-icon">👥</div>
+      <div class="tab-label">Social</div>
+    </div>
+    <div class="tab-item" data-tab="profile" id="tab-profile">
+      <div class="tab-icon">👤</div>
+      <div class="tab-label">Profile</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ── AUTH MODAL ── -->
+<div id="auth-modal" onclick="handleAuthModalClick(event)">
+  <div class="auth-backdrop"></div>
+  <div class="auth-panel">
+    <div id="auth-modal-body"><!-- Rendered by AuthUI --></div>
+  </div>
+</div>
+
+<!-- ── EVENT DETAIL SHEET ── -->
+<div id="event-sheet" onclick="handleEventSheetClick(event)">
+  <div class="es-backdrop"></div>
+  <div id="es-panel"></div>
+</div>
+
+<!-- ── HOST / MISC BOTTOM SHEET (shared) ── -->
+<div id="host-sheet" onclick="handleHostSheetClick(event)">
+  <div class="es-backdrop"></div>
+  <div id="host-panel"></div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════
+     SCRIPTS — ORDER MATTERS
+═══════════════════════════ -->
+<!-- 1. Config (credentials) — YOU FILL THIS IN -->
+<script src="js/config.js"></script>
+<!-- 2. Backend services -->
+<script src="js/firebase.js"></script>
+<script src="js/supabase.js"></script>
+<!-- 3. App globals + helpers -->
+<script src="js/app.js"></script>
+<!-- 4. Navigation -->
+<script src="js/router.js"></script>
+<!-- 5. Views -->
+<script src="js/map.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/events.js"></script>
+<script src="js/host.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/controllers.js"></script>
+
+<!-- Inline bootstrap: load Google Maps after config is available -->
+<script>
+  // Inject Google Maps script dynamically so we can read the key from config.js
+  (function() {
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${CONFIG.googleMaps.apiKey}&libraries=places,visualization&callback=onGoogleMapsReady&loading=async`;
+    s.defer = true;
+    document.head.appendChild(s);
+  })();
+
+  // Sheet backdrop click handlers
+  function handleAuthModalClick(e) {
+    if (e.target.classList.contains('auth-backdrop')) AuthUI.closeModal();
+  }
+  function handleEventSheetClick(e) {
+    if (e.target.classList.contains('es-backdrop')) EventSheet.close();
+  }
+  function handleHostSheetClick(e) {
+    if (e.target.classList.contains('es-backdrop')) {
+      document.getElementById('host-sheet').classList.remove('open');
+      unlockScroll();
+    }
+  }
+</script>
+
+</body>
+</html>

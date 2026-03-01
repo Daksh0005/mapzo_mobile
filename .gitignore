@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Capacitor platforms (will be regenerated)
+android/
+ios/
+
+# Configuration with sensitive API keys
+www/js/config.js
+
+# Build outputs
+dist/
+build/
+*.apk
+*.aab
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Firebase cache
+.firebase/
+
+# Debug files
+debug.log
